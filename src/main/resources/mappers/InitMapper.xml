@@ -180,4 +180,21 @@
             jar_id INTEGER NOT NULL
         );
     </update>
+    <update id="createRouteTable">
+        CREATE TABLE IF NOT EXISTS route_table
+        (
+            rt_id INTEGER
+            CONSTRAINT route_table_pk PRIMARY KEY AUTOINCREMENT,
+            class_name TEXT NOT NULL,
+            method_name TEXT NOT NULL,
+            method_desc TEXT NOT NULL,
+            framework TEXT NOT NULL,
+            http_method TEXT NOT NULL,
+            path TEXT NOT NULL,
+            base_path TEXT,
+            method_path TEXT,
+            line_number INTEGER,
+            jar_id INTEGER NOT NULL
+        );
+    </update>
 </mapper>

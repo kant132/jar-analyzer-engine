@@ -1,0 +1,56 @@
+/*
+ * GPLv3 License
+ *
+ * Copyright (c) 2022-2026 4ra1n (Jar Analyzer Team)
+ *
+ * This project is distributed under the GPLv3 license.
+ *
+ * https://github.com/jar-analyzer/jar-analyzer/blob/master/LICENSE
+ */
+
+package me.n1ar4.jar.analyzer.analyze.jaxrs;
+
+import me.n1ar4.jar.analyzer.core.reference.ClassReference;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@SuppressWarnings("all")
+public class JaxRsResource {
+    private ClassReference.Handle className;
+    private ClassReference classReference;
+    private String basePath;
+    private final List<JaxRsMapping> mappings = new ArrayList<>();
+
+    public ClassReference.Handle getClassName() {
+        return className;
+    }
+
+    public void setClassName(ClassReference.Handle className) {
+        this.className = className;
+    }
+
+    public ClassReference getClassReference() {
+        return classReference;
+    }
+
+    public void setClassReference(ClassReference classReference) {
+        this.classReference = classReference;
+    }
+
+    public String getBasePath() {
+        return basePath;
+    }
+
+    public void setBasePath(String basePath) {
+        this.basePath = basePath;
+    }
+
+    public List<JaxRsMapping> getMappings() {
+        return mappings;
+    }
+
+    public void addMapping(JaxRsMapping mapping) {
+        this.mappings.add(mapping);
+    }
+}

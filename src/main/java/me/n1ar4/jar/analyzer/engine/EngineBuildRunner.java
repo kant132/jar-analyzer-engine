@@ -10,10 +10,19 @@
 
 package me.n1ar4.jar.analyzer.engine;
 
+import me.n1ar4.jar.analyzer.analyze.jaxrs.JaxRsMapping;
+import me.n1ar4.jar.analyzer.analyze.jaxrs.JaxRsResource;
+import me.n1ar4.jar.analyzer.analyze.jaxrs.JaxRsService;
+import me.n1ar4.jar.analyzer.analyze.jaxws.JaxWsEndpoint;
+import me.n1ar4.jar.analyzer.analyze.jaxws.JaxWsOperation;
+import me.n1ar4.jar.analyzer.analyze.jaxws.JaxWsService;
+import me.n1ar4.jar.analyzer.analyze.spring.SpringController;
+import me.n1ar4.jar.analyzer.analyze.spring.SpringMapping;
 import me.n1ar4.jar.analyzer.analyze.spring.SpringService;
 import me.n1ar4.jar.analyzer.core.*;
 import me.n1ar4.jar.analyzer.core.asm.FixClassVisitor;
 import me.n1ar4.jar.analyzer.core.asm.StringClassVisitor;
+import me.n1ar4.jar.analyzer.core.reference.AnnoReference;
 import me.n1ar4.jar.analyzer.core.reference.ClassReference;
 import me.n1ar4.jar.analyzer.core.reference.MethodReference;
 import me.n1ar4.jar.analyzer.engine.log.LogManager;
@@ -21,6 +30,7 @@ import me.n1ar4.jar.analyzer.engine.log.Logger;
 import me.n1ar4.jar.analyzer.engine.utils.*;
 import me.n1ar4.jar.analyzer.entity.ClassFileEntity;
 import me.n1ar4.jar.analyzer.entity.JarEntity;
+import me.n1ar4.jar.analyzer.entity.RouteEntry;
 import org.objectweb.asm.ClassReader;
 
 import java.io.ByteArrayInputStream;
@@ -55,6 +65,8 @@ public class EngineBuildRunner {
         AnalyzeEnv.methodCalls.clear();
         AnalyzeEnv.strMap.clear();
         AnalyzeEnv.controllers.clear();
+        AnalyzeEnv.jaxRsResources.clear();
+        AnalyzeEnv.jaxWsEndpoints.clear();
         AnalyzeEnv.interceptors.clear();
         AnalyzeEnv.servlets.clear();
         AnalyzeEnv.filters.clear();
@@ -269,6 +281,108 @@ public class EngineBuildRunner {
                     AnalyzeEnv.classMap, AnalyzeEnv.methodMap);
             DatabaseManager.saveSpringController(AnalyzeEnv.controllers);
 
+            // 把 Spring MVC 路由也写入统一的 route_table
+            List<RouteEntry> springRoutes = new ArrayList<>();
+            for (SpringController controller : AnalyzeEnv.controllers) {
+                for (SpringMapping mapping : controller.getMappings()) {
+                    RouteEntry entry = new RouteEntry();
+                    entry.setClassName(controller.getClassName().getName());
+                    entry.setMethodName(mapping.getMethodName().getName());
+                    entry.setMethodDesc(mapping.getMethodName().getDesc());
+                    entry.setFramework("spring-mvc");
+                    String path = mapping.getPath();
+                    if (path == null || path.isEmpty()) {
+                        path = "none";
+                    }
+                    entry.setPath(path);
+                    entry.setBasePath(controller.getBasePath());
+                    String restful = mapping.getPathRestful();
+                    if (restful != null && !restful.isEmpty()) {
+                        entry.setHttpMethod(restful);
+                    } else {
+                        if (mapping.getMethodReference() != null) {
+                            for (AnnoReference anno : mapping.getMethodReference().getAnnotations()) {
+                                String annoName = anno.getAnnoName();
+                                if (annoName == null) {
+                                    continue;
+                                }
+                                if (annoName.contains("GetMapping")) {
+                                    entry.setHttpMethod("GET");
+                                    break;
+                                } else if (annoName.contains("PostMapping")) {
+                                    entry.setHttpMethod("POST");
+                                    break;
+                                } else if (annoName.contains("PutMapping")) {
+                                    entry.setHttpMethod("PUT");
+                                    break;
+                                } else if (annoName.contains("DeleteMapping")) {
+                                    entry.setHttpMethod("DELETE");
+                                    break;
+                                } else if (annoName.contains("PatchMapping")) {
+                                    entry.setHttpMethod("PATCH");
+                                    break;
+                                } else if (annoName.contains("RequestMapping")) {
+                                    entry.setHttpMethod("REQUEST");
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    entry.setJarId(controller.getClassReference().getJarId());
+                    springRoutes.add(entry);
+                }
+            }
+            DatabaseManager.saveRoutes(springRoutes);
+
+            // JAX-RS route discovery
+            JaxRsService.start(AnalyzeEnv.classFileList, AnalyzeEnv.jaxRsResources,
+                    AnalyzeEnv.classMap, AnalyzeEnv.methodMap);
+
+            // JAX-WS route discovery
+            JaxWsService.start(AnalyzeEnv.classFileList, AnalyzeEnv.jaxWsEndpoints,
+                    AnalyzeEnv.classMap, AnalyzeEnv.methodMap);
+
+            // Build unified route_table entries
+            List<RouteEntry> allRoutes = new ArrayList<>();
+            for (JaxRsResource res : AnalyzeEnv.jaxRsResources) {
+                for (JaxRsMapping m : res.getMappings()) {
+                    RouteEntry entry = new RouteEntry();
+                    entry.setClassName(res.getClassName().getName());
+                    entry.setMethodName(m.getMethodName().getName());
+                    entry.setMethodDesc(m.getMethodName().getDesc());
+                    entry.setFramework("jax-rs");
+                    entry.setHttpMethod(m.getHttpMethod());
+                    entry.setPath(m.getPath());
+                    entry.setBasePath(res.getBasePath());
+                    entry.setMethodPath(m.getMethodPath());
+                    entry.setJarId(res.getClassReference().getJarId());
+                    allRoutes.add(entry);
+                }
+            }
+            for (JaxWsEndpoint ep : AnalyzeEnv.jaxWsEndpoints) {
+                for (JaxWsOperation op : ep.getOperations()) {
+                    if (op.isExclude()) {
+                        continue;
+                    }
+                    RouteEntry entry = new RouteEntry();
+                    entry.setClassName(ep.getClassName().getName());
+                    entry.setMethodName(op.getMethodName().getName());
+                    entry.setMethodDesc(op.getMethodName().getDesc());
+                    entry.setFramework("jax-ws");
+                    entry.setHttpMethod("POST");
+                    String serviceName = ep.getServiceName();
+                    if (serviceName == null || serviceName.isEmpty()) {
+                        serviceName = ep.getClassName().getName().replace("/", ".");
+                        serviceName = serviceName.substring(serviceName.lastIndexOf(".") + 1);
+                    }
+                    entry.setPath("/services/" + serviceName);
+                    entry.setBasePath("/services/" + serviceName);
+                    entry.setJarId(ep.getClassReference().getJarId());
+                    allRoutes.add(entry);
+                }
+            }
+            DatabaseManager.saveRoutes(allRoutes);
+
             OtherWebService.start(AnalyzeEnv.classFileList,
                     AnalyzeEnv.interceptors,
                     AnalyzeEnv.servlets, AnalyzeEnv.filters, AnalyzeEnv.listeners);
@@ -322,6 +436,8 @@ public class EngineBuildRunner {
             }
         }
         AnalyzeEnv.controllers.clear();
+        AnalyzeEnv.jaxRsResources.clear();
+        AnalyzeEnv.jaxWsEndpoints.clear();
         System.gc();
     }
 }

@@ -50,6 +50,7 @@ public class DatabaseManager {
     private static final SpringInterceptorMapper springIMapper;
     private static final SpringMethodMapper springMMapper;
     private static final JavaWebMapper javaWebMapper;
+    private static final RouteTableMapper routeTableMapper;
 
     private static final ClassReference notFoundClassReference = new ClassReference(
             -1, -1, null, null, null, false, null, null, "unknown", -1);
@@ -84,6 +85,7 @@ public class DatabaseManager {
         springIMapper = session.getMapper(SpringInterceptorMapper.class);
         springMMapper = session.getMapper(SpringMethodMapper.class);
         javaWebMapper = session.getMapper(JavaWebMapper.class);
+        routeTableMapper = session.getMapper(RouteTableMapper.class);
         InitMapper initMapper = session.getMapper(InitMapper.class);
         initMapper.createJarTable();
         initMapper.createClassTable();
@@ -99,6 +101,7 @@ public class DatabaseManager {
         initMapper.createSpringMappingTable();
         initMapper.createSpringInterceptorTable();
         initMapper.createJavaWebTable();
+        initMapper.createRouteTable();
         logger.info("create database finish");
     }
 
@@ -550,5 +553,20 @@ public class DatabaseManager {
                 logger.warn("save error");
             }
         }
+    }
+
+    public static void saveRoutes(List<RouteEntry> routes) {
+        if (routes == null || routes.isEmpty()) {
+            logger.info("route table data is empty");
+            return;
+        }
+        List<List<RouteEntry>> partition = PartitionUtils.partition(routes, PART_SIZE);
+        for (List<RouteEntry> data : partition) {
+            int a = routeTableMapper.insertRoutes(data);
+            if (a == 0) {
+                logger.warn("save route error");
+            }
+        }
+        logger.info("save route table success: {}", routes.size());
     }
 }

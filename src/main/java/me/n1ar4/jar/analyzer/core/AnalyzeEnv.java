@@ -10,6 +10,8 @@
 
 package me.n1ar4.jar.analyzer.core;
 
+import me.n1ar4.jar.analyzer.analyze.jaxrs.JaxRsResource;
+import me.n1ar4.jar.analyzer.analyze.jaxws.JaxWsEndpoint;
 import me.n1ar4.jar.analyzer.analyze.spring.SpringController;
 import me.n1ar4.jar.analyzer.core.reference.ClassReference;
 import me.n1ar4.jar.analyzer.core.reference.MethodReference;
@@ -30,6 +32,8 @@ public class AnalyzeEnv {
     public static InheritanceMap inheritanceMap;
     public static Map<MethodReference.Handle, List<String>> strMap = new HashMap<>();
     public static ArrayList<SpringController> controllers = new ArrayList<>();
+    public static List<JaxRsResource> jaxRsResources = new ArrayList<>();
+    public static List<JaxWsEndpoint> jaxWsEndpoints = new ArrayList<>();
     public static ArrayList<String> interceptors = new ArrayList<>();
     public static ArrayList<String> servlets = new ArrayList<>();
     public static ArrayList<String> filters = new ArrayList<>();

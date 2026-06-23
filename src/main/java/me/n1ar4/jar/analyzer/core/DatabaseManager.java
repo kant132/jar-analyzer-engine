@@ -561,14 +561,24 @@ public class DatabaseManager {
             logger.info("route table data is empty");
             return;
         }
-        // Null-safe: ensure http_method has a default value
+        // Null-safe: ensure http_method and path have proper defaults
+        int defaultedMethod = 0;
+        int defaultedPath = 0;
         for (RouteEntry route : routes) {
             if (route.getHttpMethod() == null || route.getHttpMethod().isEmpty()) {
-                route.setHttpMethod("REQUEST");
+                route.setHttpMethod("ANY");
+                defaultedMethod++;
             }
             if (route.getPath() == null || route.getPath().isEmpty()) {
-                route.setPath("none");
+                route.setPath("/");
+                defaultedPath++;
             }
+        }
+        if (defaultedMethod > 0) {
+            logger.warn("saveRoutes: defaulted httpMethod to ANY for {} routes", defaultedMethod);
+        }
+        if (defaultedPath > 0) {
+            logger.warn("saveRoutes: defaulted path to / for {} routes", defaultedPath);
         }
         List<List<RouteEntry>> partition = PartitionUtils.partition(routes, PART_SIZE);
         for (List<RouteEntry> data : partition) {

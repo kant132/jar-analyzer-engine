@@ -146,6 +146,10 @@ public class EngineBuildRunner {
                         className = className.substring(i + 8);
                     }
                 }
+                // Strip .class suffix to match method_table format
+                if (className.endsWith(".class")) {
+                    className = className.substring(0, className.length() - 6);
+                }
                 cf.setClassName(className);
             } else {
                 Path parPath = Paths.get(EngineConst.tempDir);

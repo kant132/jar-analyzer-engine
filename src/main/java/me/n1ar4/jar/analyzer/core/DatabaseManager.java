@@ -257,6 +257,7 @@ public class DatabaseManager {
             methodEntity.setStatic(reference.isStatic());
             methodEntity.setAccess(reference.getAccess());
             methodEntity.setLineNumber(reference.getLineNumber());
+            methodEntity.setEndLine(reference.getEndLine());
             methodEntity.setJarId(reference.getJarId());
             mList.add(methodEntity);
             for (AnnoReference anno : reference.getAnnotations()) {

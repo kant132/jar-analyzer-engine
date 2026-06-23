@@ -24,10 +24,10 @@
     </resultMap>
     <insert id="insertMethod" parameterType="MethodEntity">
         INSERT INTO method_table
-        (method_name, method_desc, is_static, class_name, access, line_number, jar_id)
+        (method_name, method_desc, is_static, class_name, access, line_number, end_line, jar_id)
         VALUES
         <foreach collection="list" separator="," item="item">
-            (#{item.methodName}, #{item.methodDesc}, #{item.isStatic}, #{item.className}, #{item.access}, #{item.lineNumber}, #{item.jarId})
+            (#{item.methodName}, #{item.methodDesc}, #{item.isStatic}, #{item.className}, #{item.access}, #{item.lineNumber}, #{item.endLine}, #{item.jarId})
         </foreach>
     </insert>
 </mapper>

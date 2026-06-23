@@ -55,6 +55,12 @@ public class DiscoveryMethodAdapter extends MethodVisitor {
         int lineNumber = methodReference.getLineNumber();
         if (lineNumber == -1) {
             this.methodReference.setLineNumber(line);
+            this.methodReference.setEndLine(line);
+        } else {
+            // Track the last line number as endLine
+            if (line > this.methodReference.getEndLine()) {
+                this.methodReference.setEndLine(line);
+            }
         }
         super.visitLineNumber(line, start);
     }

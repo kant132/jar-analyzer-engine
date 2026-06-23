@@ -21,6 +21,7 @@ public class MethodReference {
     private final int access;
     private final boolean isStatic;
     private int lineNumber = -1;
+    private int endLine = -1;
     private final String jarName;
     private final Integer jarId;
 
@@ -35,6 +36,7 @@ public class MethodReference {
         this.annotations = annotations;
         this.access = access;
         this.lineNumber = lineNumber;
+        this.endLine = lineNumber;  // default: end = start
         this.jarName = jarName;
         this.jarId = jarId;
     }
@@ -63,6 +65,14 @@ public class MethodReference {
         this.lineNumber = lineNumber;
     }
 
+    public int getEndLine() {
+        return endLine;
+    }
+
+    public void setEndLine(int endLine) {
+        this.endLine = endLine;
+    }
+
     public String getJarName() {
         return jarName;
     }
@@ -84,9 +94,11 @@ public class MethodReference {
     }
 
     public MethodReference cloneObj() {
-        return new MethodReference(new ClassReference.Handle(this.classReference.getName()),
+        MethodReference clone = new MethodReference(new ClassReference.Handle(this.classReference.getName()),
                 this.name, this.desc, this.isStatic,
                 this.annotations, this.access, this.lineNumber, jarName, jarId);
+        clone.endLine = this.endLine;
+        return clone;
     }
 
     public static class Handle {

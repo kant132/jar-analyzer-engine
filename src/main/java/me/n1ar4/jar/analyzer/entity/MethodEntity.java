@@ -18,6 +18,7 @@ public class MethodEntity {
     private String className;
     private int access;
     private int lineNumber;
+    private int endLine = -1;
     private Integer jarId;
 
     public int getAccess() {
@@ -76,6 +77,14 @@ public class MethodEntity {
         this.lineNumber = lineNumber;
     }
 
+    public int getEndLine() {
+        return endLine;
+    }
+
+    public void setEndLine(int endLine) {
+        this.endLine = endLine;
+    }
+
     public void setJarId(Integer jarId) {
         this.jarId = jarId;
     }
@@ -94,6 +103,7 @@ public class MethodEntity {
                 ", className='" + className + '\'' +
                 ", access=" + access +
                 ", lineNumber=" + lineNumber +
+                ", endLine=" + endLine +
                 ", jarId=" + jarId +
                 '}';
     }

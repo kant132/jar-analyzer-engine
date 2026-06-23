@@ -561,6 +561,15 @@ public class DatabaseManager {
             logger.info("route table data is empty");
             return;
         }
+        // Null-safe: ensure http_method has a default value
+        for (RouteEntry route : routes) {
+            if (route.getHttpMethod() == null || route.getHttpMethod().isEmpty()) {
+                route.setHttpMethod("REQUEST");
+            }
+            if (route.getPath() == null || route.getPath().isEmpty()) {
+                route.setPath("none");
+            }
+        }
         List<List<RouteEntry>> partition = PartitionUtils.partition(routes, PART_SIZE);
         for (List<RouteEntry> data : partition) {
             int a = routeTableMapper.insertRoutes(data);

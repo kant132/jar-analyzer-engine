@@ -174,15 +174,17 @@ public class EngineBuildRunner {
                 if (!file.getParentFile().exists() && !file.getParentFile().mkdirs()) {
                     logger.error("fix class mkdirs error");
                 }
-                className = file.getPath() + ".class";
+                String destPath = file.getPath() + ".class";
                 try (ByteArrayInputStream bis = new ByteArrayInputStream(fileBytes);
-                     FileOutputStream fos = new FileOutputStream(className)) {
+                     FileOutputStream fos = new FileOutputStream(destPath)) {
                     IOUtil.copy(bis, fos);
                 } catch (IOException ex) {
                     logger.error("fix path copy bytes error: {}", ex.toString());
                 }
+                // Use ASM class name (no path prefix, no .class) for class_file_table
+                className = cv.getName();
                 cf.setClassName(className);
-                cf.setPath(Paths.get(className));
+                cf.setPath(Paths.get(destPath));
             }
         }
 
@@ -355,7 +357,7 @@ public class EngineBuildRunner {
                     entry.setMethodName(m.getMethodName().getName());
                     entry.setMethodDesc(m.getMethodName().getDesc());
                     entry.setFramework("jax-rs");
-                    entry.setHttpMethod(m.getHttpMethod());
+                    entry.setHttpMethod(m.getHttpMethod() != null ? m.getHttpMethod() : "REQUEST");
                     entry.setPath(m.getPath());
                     entry.setBasePath(res.getBasePath());
                     entry.setMethodPath(m.getMethodPath());

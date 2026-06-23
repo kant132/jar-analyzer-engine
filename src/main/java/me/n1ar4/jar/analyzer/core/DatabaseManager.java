@@ -459,7 +459,7 @@ public class DatabaseManager {
                 List<SpringMethodEntity> newList = new ArrayList<>();
                 for (SpringMethodEntity entity : data) {
                     if (entity.getPath() == null || entity.getPath().isEmpty()) {
-                        entity.setPath("none");
+                        entity.setPath("/");
                     }
                     newList.add(entity);
                 }
@@ -469,7 +469,7 @@ public class DatabaseManager {
                 }
             }
         } catch (Throwable t) {
-            logger.warn("SPRING CONTROLLER 分析错误 请提 ISSUE 解决");
+            logger.warn("SPRING CONTROLLER 分析错误", t);
         }
         logger.info("save all spring data success");
     }

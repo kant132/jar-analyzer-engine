@@ -40,4 +40,6 @@ public interface InitMapper {
     void createJavaWebTable();
 
     void createRouteTable();
+
+    void createChainsTable();
 }

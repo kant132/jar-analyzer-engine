@@ -53,7 +53,9 @@ public class SpringMethodAdapter extends MethodVisitor {
     @Override
     public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
         AnnotationVisitor av = super.visitAnnotation(descriptor, visible);
-        if (descriptor.startsWith(SpringConstant.ANNO_PREFIX)) {
+        // 只对 Mapping 注解 (RequestMapping/GetMapping/PostMapping 等) 创建 pathAnnoAdapter
+        // @ResponseBody/@RequestParam 等也匹配 ANNO_PREFIX 但不应覆盖 pathAnnoAdapter
+        if (descriptor.startsWith(SpringConstant.ANNO_PREFIX) && descriptor.contains(SpringConstant.MappingAnno)) {
             if (currentMapping == null) {
                 currentMapping = new SpringMapping();
             }

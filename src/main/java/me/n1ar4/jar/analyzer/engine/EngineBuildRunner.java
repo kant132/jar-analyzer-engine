@@ -298,10 +298,22 @@ public class EngineBuildRunner {
                     entry.setFramework("spring-mvc");
                     String path = mapping.getPath();
                     if (path == null || path.isEmpty()) {
-                        path = "none";
+                        path = "/";
                     }
                     entry.setPath(path);
                     entry.setBasePath(controller.getBasePath());
+                    // 提取方法级别路径 (去掉 base_path 前缀)
+                    String basePath = controller.getBasePath();
+                    if (basePath != null && !basePath.isEmpty() && path.startsWith(basePath)) {
+                        String methodPath = path.substring(basePath.length());
+                        entry.setMethodPath(methodPath.isEmpty() ? "/" : methodPath);
+                    } else {
+                        entry.setMethodPath(path);
+                    }
+                    // 设置方法行号
+                    if (mapping.getMethodReference() != null) {
+                        entry.setLineNumber(mapping.getMethodReference().getLineNumber());
+                    }
                     String restful = mapping.getPathRestful();
                     if (restful != null && !restful.isEmpty()) {
                         entry.setHttpMethod(restful);

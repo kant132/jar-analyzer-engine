@@ -23,7 +23,7 @@
         <result column="jar_id" property="jarId"/>
     </resultMap>
     <insert id="insertMethod" parameterType="MethodEntity">
-        INSERT INTO method_table
+        INSERT OR IGNORE INTO method_table
         (method_name, method_desc, is_static, class_name, access, line_number, end_line, jar_id)
         VALUES
         <foreach collection="list" separator="," item="item">

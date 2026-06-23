@@ -102,6 +102,7 @@ public class DatabaseManager {
         initMapper.createSpringInterceptorTable();
         initMapper.createJavaWebTable();
         initMapper.createRouteTable();
+        initMapper.createChainsTable();
         logger.info("create database finish");
     }
 

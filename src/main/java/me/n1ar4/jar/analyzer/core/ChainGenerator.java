@@ -60,87 +60,101 @@ public class ChainGenerator {
                 continue;
             }
 
-            // CTE 递归查询
+            // CTE 递归查询 (只遍历 groupId 内调用, 库调用只记为 sink)
             List<Map<String, Object>> chainNodes = mapper.extractChain(
-                    String.valueOf(methodId), MAX_DEPTH);
+                    String.valueOf(methodId), MAX_DEPTH, groupId + "%");
             if (chainNodes == null || chainNodes.isEmpty()) {
                 continue;
             }
 
-            // 构建调用链
             totalEndpoints++;
             String endpointFqn = className.replace("/", ".") + "#" + methodName;
 
-            // 构建 chain_path 和 node_path
-            List<String> chainPathParts = new ArrayList<>();
-            List<String> nodePathParts = new ArrayList<>();
-            int totalSinks = 0;
-            int lastSinks = 0;
-
+            // 按路径变体分组：CTE 返回所有可达节点（含 path 字段）
+            // 每条唯一的 path = 一条链变体
+            // 按 path 字段提取根→叶路径，每条路径生成一条 chain
+            Map<String, List<Map<String, Object>>> pathVariants = new LinkedHashMap<>();
             for (Map<String, Object> node : chainNodes) {
-                String nodeClassName = (String) node.get("class_name");
-                String nodeMethodName = (String) node.get("method_name");
-                String nodeMethodDesc = (String) node.get("method_desc");
-                String nodeId = String.valueOf(node.get("method_id"));
+                String path = (String) node.get("path");
+                if (path == null) continue;
+                pathVariants.computeIfAbsent(path, k -> new ArrayList<>()).add(node);
+            }
 
-                // 识别该方法的 sinks (非 groupId 调用)
-                List<Map<String, Object>> callees = mapper.getCallees(
-                        nodeClassName, nodeMethodName, nodeMethodDesc);
-                int sinkCount = 0;
-                if (callees != null) {
-                    for (Map<String, Object> callee : callees) {
-                        String calleeClass = (String) callee.get("callee_class_name");
-                        if (calleeClass != null && !calleeClass.startsWith(groupId)) {
-                            sinkCount++;
+            // 对每条路径变体生成一条 chain
+            for (Map.Entry<String, List<Map<String, Object>>> variant : pathVariants.entrySet()) {
+                List<Map<String, Object>> variantNodes = variant.getValue();
+
+                // 构建-chain_path 和 node_path
+                List<String> chainPathParts = new ArrayList<>();
+                List<String> nodePathParts = new ArrayList<>();
+                int totalSinks = 0;
+                int lastSinks = 0;
+
+                for (Map<String, Object> node : variantNodes) {
+                    String nodeClassName = (String) node.get("class_name");
+                    String nodeMethodName = (String) node.get("method_name");
+                    String nodeMethodDesc = (String) node.get("method_desc");
+                    String nodeId = String.valueOf(node.get("method_id"));
+
+                    // 识别该方法的 sinks (非 groupId 调用)
+                    List<Map<String, Object>> callees = mapper.getCallees(
+                            nodeClassName, nodeMethodName, nodeMethodDesc);
+                    int sinkCount = 0;
+                    if (callees != null) {
+                        for (Map<String, Object> callee : callees) {
+                            String calleeClass = (String) callee.get("callee_class_name");
+                            if (calleeClass != null && !calleeClass.startsWith(groupId)) {
+                                sinkCount++;
+                            }
                         }
                     }
+
+                    totalSinks += sinkCount;
+                    lastSinks = sinkCount;
+
+                    String fqn = nodeClassName.replace("/", ".") + "#" + nodeMethodName;
+                    chainPathParts.add(fqn + "(sink num: " + sinkCount + ")");
+                    nodePathParts.add(nodeId);
                 }
 
-                totalSinks += sinkCount;
-                lastSinks = sinkCount;
-
-                String fqn = nodeClassName.replace("/", ".") + "#" + nodeMethodName;
-                chainPathParts.add(fqn + "(sink num: " + sinkCount + ")");
-                nodePathParts.add(nodeId);
-            }
-
-            // 检测环
-            Set<String> seen = new HashSet<>();
-            boolean cycle = false;
-            for (String nid : nodePathParts) {
-                if (seen.contains(nid)) {
-                    cycle = true;
-                    break;
+                // 检测环
+                Set<String> seen = new HashSet<>();
+                boolean cycle = false;
+                for (String nid : nodePathParts) {
+                    if (seen.contains(nid)) {
+                        cycle = true;
+                        break;
+                    }
+                    seen.add(nid);
                 }
-                seen.add(nid);
+
+                // 计算优先级
+                int priority = Math.max(0, lastSinks * 10 + lastSinks);
+
+                // 生成 chain_id (sha256 of node_path)
+                String nodePathStr = String.join(" -> ", nodePathParts);
+                String chainId = sha256Short(nodePathStr);
+
+                // 构建 chain_path
+                String chainPathStr = String.join(" -> ", chainPathParts);
+
+                // 插入 chains 表
+                Map<String, Object> params = new HashMap<>();
+                params.put("chainId", chainId);
+                params.put("endpointFqn", endpointFqn);
+                params.put("priority", priority);
+                params.put("totalSinks", totalSinks);
+                params.put("cycleDetected", cycle ? 1 : 0);
+                params.put("chainPath", chainPathStr);
+                params.put("nodePath", nodePathStr);
+                params.put("createdAt", new Date().toString());
+                params.put("lastSinks", lastSinks);
+                params.put("isSink", lastSinks > 0 ? 1 : 0);
+                params.put("nodeCount", variantNodes.size());
+
+                mapper.insertChain(params);
+                totalChains++;
             }
-
-            // 计算优先级
-            int priority = Math.max(0, lastSinks * 10 + lastSinks);
-
-            // 生成 chain_id (sha256 of node_path)
-            String nodePathStr = String.join(" -> ", nodePathParts);
-            String chainId = sha256Short(nodePathStr);
-
-            // 构建 chain_path
-            String chainPathStr = String.join(" -> ", chainPathParts);
-
-            // 插入 chains 表
-            Map<String, Object> params = new HashMap<>();
-            params.put("chainId", chainId);
-            params.put("endpointFqn", endpointFqn);
-            params.put("priority", priority);
-            params.put("totalSinks", totalSinks);
-            params.put("cycleDetected", cycle ? 1 : 0);
-            params.put("chainPath", chainPathStr);
-            params.put("nodePath", nodePathStr);
-            params.put("createdAt", new Date().toString());
-            params.put("lastSinks", lastSinks);
-            params.put("isSink", lastSinks > 0 ? 1 : 0);
-            params.put("nodeCount", chainNodes.size());
-
-            mapper.insertChain(params);
-            totalChains++;
         }
 
         logger.info("chain generation complete: {} chains, {} endpoints", totalChains, totalEndpoints);

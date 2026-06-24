@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="me.n1ar4.jar.analyzer.core.mapper.ChainMapper">
+    <insert id="insertChain" parameterType="map">
+        INSERT OR REPLACE INTO chains
+        (chain_id, endpoint_fqn, priority, total_sinks, preset_sinks,
+         cycle_detected, status, chain_path, node_path, created_at,
+         last_sinks, is_sink, node_count)
+        VALUES
+        (#{chainId}, #{endpointFqn}, #{priority}, #{totalSinks}, 0,
+         #{cycleDetected}, 'pending', #{chainPath}, #{nodePath}, #{createdAt},
+         #{lastSinks}, #{isSink}, #{nodeCount})
+    </insert>
+    <delete id="clearChains">
+        DELETE FROM chains
+    </delete>
+</mapper>

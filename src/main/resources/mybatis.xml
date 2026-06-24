@@ -43,5 +43,6 @@
         <mapper resource="mappers/SpringMethodMapper.xml"/>
         <mapper resource="mappers/JavaWebMapper.xml"/>
         <mapper resource="mappers/RouteTableMapper.xml"/>
+        <mapper resource="mappers/ChainMapper.xml"/>
     </mappers>
 </configuration>

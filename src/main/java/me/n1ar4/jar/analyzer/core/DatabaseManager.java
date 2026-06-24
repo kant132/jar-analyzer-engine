@@ -51,6 +51,7 @@ public class DatabaseManager {
     private static final SpringMethodMapper springMMapper;
     private static final JavaWebMapper javaWebMapper;
     private static final RouteTableMapper routeTableMapper;
+    private static final ChainMapper chainMapper;
 
     private static final ClassReference notFoundClassReference = new ClassReference(
             -1, -1, null, null, null, false, null, null, "unknown", -1);
@@ -86,6 +87,7 @@ public class DatabaseManager {
         springMMapper = session.getMapper(SpringMethodMapper.class);
         javaWebMapper = session.getMapper(JavaWebMapper.class);
         routeTableMapper = session.getMapper(RouteTableMapper.class);
+        chainMapper = session.getMapper(ChainMapper.class);
         InitMapper initMapper = session.getMapper(InitMapper.class);
         initMapper.createJarTable();
         initMapper.createClassTable();
@@ -589,5 +591,9 @@ public class DatabaseManager {
             }
         }
         logger.info("save route table success: {}", routes.size());
+    }
+
+    public static ChainMapper getChainMapper() {
+        return chainMapper;
     }
 }

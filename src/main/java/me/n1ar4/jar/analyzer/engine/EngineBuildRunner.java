@@ -418,6 +418,17 @@ public class EngineBuildRunner {
         logger.info("build database finish");
         callback.onInfo("build database finish");
 
+        // 生成调用链 (Phase 2 逻辑移入 engine)
+        callback.onProgress(90);
+        logger.info("start chain generation");
+        callback.onInfo("start chain generation");
+        try {
+            me.n1ar4.jar.analyzer.core.ChainGenerator.generate();
+        } catch (Exception e) {
+            logger.error("chain generation error", e);
+        }
+        logger.info("chain generation finish");
+
         long fileSizeBytes = new File(EngineConst.dbFile).length();
         String fileSizeMB = String.format("%.2f MB", (double) fileSizeBytes / (1024 * 1024));
         callback.onStats("dbSize", fileSizeMB);

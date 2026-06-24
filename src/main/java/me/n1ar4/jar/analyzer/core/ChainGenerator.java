@@ -40,8 +40,9 @@ public class ChainGenerator {
         }
         logger.info("generating chains for {} routes", routes.size());
 
-        // 推断 groupId
-        String groupId = inferGroupId(routes);
+        // 推断 groupId：method_table 中所有 class_name 的最长公共包前缀
+        List<String> allClassNames = mapper.getAllClassNames();
+        String groupId = inferGroupId(allClassNames);
         logger.info("inferred groupId: {}", groupId);
 
         int totalChains = 0;
@@ -161,25 +162,58 @@ public class ChainGenerator {
     }
 
     /**
-     * 从 route_table 的 class_name 推断 groupId。
-     * 例如: com/macro/mall/controller/OssController → com/macro/mall
+     * 从所有 class_name 中找最长公共包前缀作为 groupId。
+     * 例如所有类都是 com/macro/mall/... 开头 → groupId = com/macro/mall
      */
-    private static String inferGroupId(List<Map<String, Object>> routes) {
-        for (Map<String, Object> route : routes) {
-            String className = (String) route.get("class_name");
-            if (className == null) continue;
-            String[] parts = className.split("/");
-            for (int i = 0; i < parts.length; i++) {
-                if ("controller".equalsIgnoreCase(parts[i]) && i > 0) {
-                    return String.join("/", Arrays.copyOf(parts, i));
-                }
-            }
-            // 如果没有 "controller"，取前3段
-            if (parts.length >= 3) {
-                return parts[0] + "/" + parts[1] + "/" + parts[2];
+    private static String inferGroupId(List<String> classNames) {
+        if (classNames == null || classNames.isEmpty()) {
+            return "";
+        }
+        // 取所有 class_name 按 "/" 分割，找公共前缀
+        List<String[]> allParts = new ArrayList<>();
+        for (String cn : classNames) {
+            if (cn != null && !cn.isEmpty()) {
+                allParts.add(cn.split("/"));
             }
         }
-        return "";
+        if (allParts.isEmpty()) {
+            return "";
+        }
+        // 找所有路径的最长公共前缀
+        int minLen = Integer.MAX_VALUE;
+        for (String[] parts : allParts) {
+            minLen = Math.min(minLen, parts.length);
+        }
+        // 至少要有 2 段公共前缀才算 groupId
+        int commonEnd = 0;
+        for (int i = 0; i < minLen; i++) {
+            String seg = allParts.get(0)[i];
+            boolean allMatch = true;
+            for (String[] parts : allParts) {
+                if (!parts[i].equals(seg)) {
+                    allMatch = false;
+                    break;
+                }
+            }
+            if (allMatch) {
+                commonEnd = i + 1;
+            } else {
+                break;
+            }
+        }
+        // 公共前缀至少 2 段，最多取到倒数第 2 段（留至少 1 段给子包/类名）
+        commonEnd = Math.min(commonEnd, minLen - 1);
+        if (commonEnd < 2) {
+            // 公共前缀太短，退化取第一个 class_name 的前 3 段
+            String[] first = allParts.get(0);
+            commonEnd = Math.min(3, first.length - 1);
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < commonEnd; i++) {
+            if (i > 0) sb.append("/");
+            sb.append(allParts.get(0)[i]);
+        }
+        return sb.toString();
     }
 
     private static String sha256Short(String input) {

@@ -66,7 +66,7 @@ public interface ChainMapper {
     @Select("SELECT DISTINCT class_name, method_name FROM route_table")
     List<Map<String, Object>> getAllRoutes();
 
-    // Get groupId from jar_table (first jar name)
-    @Select("SELECT jar_name FROM jar_table LIMIT 1")
-    String getFirstJarName();
+    // Get all distinct class_names from method_table (for groupId inference)
+    @Select("SELECT DISTINCT class_name FROM method_table")
+    List<String> getAllClassNames();
 }
